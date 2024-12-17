@@ -1,4 +1,4 @@
-import Notification from '../models/notificationModel.js';
+import Notification from '../models/notificationSchema.js';
 import {User} from '../models/userModel.js'; // Assuming a User model exists
 
 /**
