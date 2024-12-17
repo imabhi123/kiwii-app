@@ -30,7 +30,7 @@ dotenv.config(); // Load environment variables
 const app = express();
 
 // Connect to the database
-connectDB();
+connectDB(); 
 console.log('abhishek kumar sharma')
 
 // Security middleware
