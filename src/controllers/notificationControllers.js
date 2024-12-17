@@ -1,118 +1,90 @@
-import { Notification, NotificationTypes } from '../models/notificationSchema.js';
-import createHttpError from 'http-errors';
+import Notification from '../models/notificationModel.js';
+import {User} from '../models/userModel.js'; // Assuming a User model exists
 
-// Create a new notification
-export const createNotification = async (req, res, next) => {
+/**
+ * Send a notification to all users.
+ */
+export const sendNotificationToAllUsers = async (req, res) => {
   try {
-    const {
-      type,
-      title,
-      message,
-      time,
-      userId
-    } = req.body;
+    const { title, description } = req.body;
 
-    // Validate notification type
-    if (!NotificationTypes.includes(type)) {
-      return next(createHttpError(400, 'Invalid notification type'));
+    if (!title || !description) {
+      return res.status(400).json({ message: 'Title and description are required.' });
     }
 
-    // Generate unique ID (in a real app, you might use a more robust ID generation)
-    const lastNotification = await Notification.findOne().sort({ id: -1 });
-    const newId = lastNotification ? lastNotification.id + 1 : 1;
-
-    // Create new notification
     const notification = new Notification({
-      id: newId,
-      type,
       title,
-      message,
-      time,
-      userId: userId || null
+      description,
     });
 
     await notification.save();
-
-    res.status(201).json({
-      message: 'Notification created successfully',
-      notification
-    });
+    res.status(201).json({ message: 'Notification sent to all users.', notification });
   } catch (error) {
-    next(createHttpError(500, 'Error creating notification'));
+    console.error('Error sending notification to all users:', error);
+    res.status(500).json({ message: 'Server error. Please try again later.' });
   }
 };
 
-export const getUserNotifications = async (req, res, next) => {
+/**
+ * Send a notification to a specific user.
+ */
+export const sendNotificationToUser = async (req, res) => {
   try {
-    const { userId } = req.body; // Assuming `userId` is passed in the request body
+    const { userId } = req.params;
+    const { title, description } = req.body;
 
-    // Validate userId
-    if (!userId) {
-      return next(createHttpError(400, 'User ID is required'));
+    console.log(userId,req.body);
+
+    if (!title || !description) {
+      return res.status(400).json({ message: 'Title and description are required.' });
     }
 
-    // Fetch notifications for the specific user
-    const notifications = await Notification.find({ userId }).sort({ createdAt: -1 });
-
-    // Return the notifications
-    res.status(200).json({
-      success: true,
-      notifications,
-    });
-  } catch (error) {
-    console.error('Error fetching notifications:', error);
-    next(createHttpError(500, 'Error fetching notifications'));
-  }
-};
-
-// Mark a notification as read
-export const markNotificationAsRead = async (req, res, next) => {
-  try {
-    const { id } = req.params;
-    const { userId } = req.body; // Assuming authenticated user
-
-    const notification = await Notification.findOne({
-      id: parseInt(id),
-      userId
-    });
-
-    if (!notification) {
-      return next(createHttpError(404, 'Notification not found'));
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found.' });
     }
 
-    notification.metadata.isRead = true;
-    notification.metadata.readAt = new Date();
+    const notification = new Notification({
+      creator: userId,
+      title,
+      description,
+    });
 
     await notification.save();
-
-    res.json({
-      message: 'Notification marked as read',
-      notification
-    });
+    res.status(201).json({ message: 'Notification sent to the user.', notification });
   } catch (error) {
-    next(createHttpError(500, 'Error marking notification as read'));
+    console.error('Error sending notification to user:', error);
+    res.status(500).json({ message: 'Server error. Please try again later.' });
   }
 };
 
-// Clear all notifications for a user
-export const clearAllNotifications = async (req, res, next) => {
+/**
+ * Fetch all notifications (global view).
+ */
+export const getAllNotifications = async (req, res) => {
   try {
-    const { userId } = req.body; // Assuming authenticated user
-
-    const result = await Notification.deleteMany({ userId });
-
-    res.json({
-      message: 'All notifications cleared',
-      deletedCount: result.deletedCount
-    });
+    const notifications = await Notification.find().sort({ createdAt: -1 });
+    res.status(200).json({ notifications });
   } catch (error) {
-    next(createHttpError(500, 'Error clearing notifications'));
+    console.error('Error fetching all notifications:', error);
+    res.status(500).json({ message: 'Server error. Please try again later.' });
   }
 };
 
-// Get notification types
-export const getNotificationTypes = (req, res) => {
-  res.json({
-    notificationTypes: NotificationTypes
-  });
+/**
+ * Fetch notifications for a specific user.
+ */
+export const getUserNotifications = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    const notifications = await Notification.find({
+      $or: [{ creator: userId }, { creator: null }],
+    }).sort({ createdAt: -1 });
+
+    res.status(200).json({ notifications });
+  } catch (error) {
+    console.error('Error fetching user notifications:', error);
+    res.status(500).json({ message: 'Server error. Please try again later.' });
+  }
 };
