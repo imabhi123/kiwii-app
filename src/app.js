@@ -13,47 +13,43 @@ import connectDB from './config/db.js'; // MongoDB connection
 import errorHandler from './middlewares/errorHandler.js';
 
 // Route imports
-// import authRoutes from './routes/authRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
-// import threatRoutes from './routes/threatRoutes.js'; 
-// import alertRoutes from './routes/alertRoutes.js';
-import userRoutes from './routes/user-routes.js'
-import authRoutes from './routes/authRoutes.js'
-import notificationRoutes from './routes/notificationRoutes.js'
-import analyticsRoutes from './routes/analyticsRoutes.js'
-import brandRoutes from './routes/brandRoutes.js'
-import prizesRoutes from './routes/prizeRoutes.js'
-import campaignRoutes from './routes/campaignRoutes.js'
+import userRoutes from './routes/user-routes.js';
+import authRoutes from './routes/authRoutes.js';
+import notificationRoutes from './routes/notificationRoutes.js';
+import analyticsRoutes from './routes/analyticsRoutes.js';
+import brandRoutes from './routes/brandRoutes.js';
+import prizesRoutes from './routes/prizeRoutes.js';
+import campaignRoutes from './routes/campaignRoutes.js';
 
 // Initialize app
 dotenv.config(); // Load environment variables
 const app = express();
 
 // Connect to the database
-connectDB(); 
-console.log('abhishek kumar sharma')
+connectDB();
+console.log('Connected to the database');
 
 // Security middleware
 app.use(helmet());         // Set security-related HTTP headers
 app.use(mongoSanitize());  // Sanitize user input to prevent NoSQL injection attacks
 app.use(xss());            // Sanitize user input to prevent XSS attacks
-app.use(express.json({ limit: '10mb' })); // Increase payload size limit if needed
+app.use(express.json({ limit: '10mb' }));
+
 // Rate Limiting Middleware
 const limiter = rateLimit({
-  windowMs: 10 * 60 * 1000,  // 10 minutes
+  windowMs: 10 * 60 * 1000,  // 10 minutes 
   max: 100,                  // limit each IP to 100 requests per windowMs
   message: 'Too many requests from this IP, please try again later',
 });
-// app.use(limiter);
-
-// gatherMoreDetails('what is quantum physics')
+app.use(limiter);
 
 // Middleware
-app.use(cors());  // Allow only specific domains
-app.use(morgan('dev'));  // Logging middleware
+app.use(cors());
+app.use(morgan('dev'));
 
 // API routes
-app.use('/api/v1/admin', adminRoutes);    // Admin management routes
+app.use('/api/v1/admin', adminRoutes);
 app.use('/api/v1/user', userRoutes);
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/notification', notificationRoutes);
@@ -65,13 +61,17 @@ app.use('/api/v1/campaigns', campaignRoutes);
 // Custom error handling middleware
 app.use(errorHandler);
 
-// Basic home route
+// Home route
 app.get('/', (req, res) => {
   res.send('Welcome to the Threat Intelligence Platform API');
 });
 
-// Start the server
-const PORT = process.env.PORT || 5000;
-app.listen(PORT,'0.0.0.0', () => {
-  console.log(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
-});
+// Export Express app as a Vercel-compatible function
+import { createServer } from 'http';
+import { parse } from 'url';
+
+export default function handler(req, res) {
+  const server = createServer(app);
+  const parsedUrl = parse(req.url, true);
+  server.emit('request', req, res);
+}
