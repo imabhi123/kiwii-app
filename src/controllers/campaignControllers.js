@@ -2,6 +2,7 @@
 import mongoose from 'mongoose';
 import asyncHandler from 'express-async-handler';
 import Campaign from '../models/campaignModel.js';
+import { User } from '../models/userModel.js';
 
 /**
  * Utility function to handle Mongoose validation errors
@@ -74,6 +75,7 @@ export const updateCampaign = asyncHandler(async (req, res) => {
         res.status(400);
         throw new Error('Invalid Campaign ID');
     }
+    console.log(req.body,id)
 
     try {
         const updatedCampaign = await Campaign.findByIdAndUpdate(
@@ -117,4 +119,43 @@ export const deleteCampaign = asyncHandler(async (req, res) => {
     }
 
     res.status(200).json({ message: 'Campaign deleted successfully' });
+});
+
+export const markCampaignWinner = asyncHandler(async (req, res) => {
+    const { userId } = req.body; // Assume userId is passed in the request body
+    const { id: campaignId } = req.params;
+
+    // Validate the campaign ID
+    if (!mongoose.Types.ObjectId.isValid(campaignId)) {
+        res.status(400);
+        throw new Error('Invalid Campaign ID');
+    }
+
+    // Validate the user ID
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+        res.status(400);
+        throw new Error('Invalid User ID');
+    }
+
+    const campaign = await Campaign.findById(campaignId);
+    if (!campaign) {
+        res.status(404);
+        throw new Error('Campaign not found');
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+        res.status(404);
+        throw new Error('User not found');
+    }
+
+    // Add campaign win to user's history
+    user.winHistory.push({ campaignId });
+    user.wins += 1; // Increment total wins
+
+    await user.save();
+
+    res.status(200).json({
+        message: `User ${user.name} has been marked as a winner for campaign ${campaign.name}`,
+    });
 });

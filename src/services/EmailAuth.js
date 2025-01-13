@@ -20,8 +20,8 @@ export default class EmailAuth {
     }
 
     generateResetCode() {
-        return crypto.randomInt(100000, 999999).toString();
-    }
+        return crypto.randomInt(1000, 9999).toString();
+    }    
 
     async sendOTP(userEmail) {
         try {

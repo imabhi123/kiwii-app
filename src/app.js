@@ -1,18 +1,13 @@
-// app.js
-
-// Import dependencies
+// server.js
 import express from 'express';
 import dotenv from 'dotenv';
 import morgan from 'morgan';
 import cors from 'cors';
-import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import mongoSanitize from 'express-mongo-sanitize';
 import xss from 'xss-clean';
-import connectDB from './config/db.js'; // MongoDB connection
+import connectDB from './config/db.js';
 import errorHandler from './middlewares/errorHandler.js';
-
-// Route imports
 import adminRoutes from './routes/adminRoutes.js';
 import userRoutes from './routes/user-routes.js';
 import authRoutes from './routes/authRoutes.js';
@@ -20,58 +15,66 @@ import notificationRoutes from './routes/notificationRoutes.js';
 import analyticsRoutes from './routes/analyticsRoutes.js';
 import brandRoutes from './routes/brandRoutes.js';
 import prizesRoutes from './routes/prizeRoutes.js';
+import chatRoutes from './routes/chatRoutes.js';
 import campaignRoutes from './routes/campaignRoutes.js';
+import conversationRoutes from './routes/conversationRoutes.js';
+import messageRoutes from './routes/messageRoutes.js';
+import { createServer } from 'http';
+import socketService from './services/notificationService.js';
 
-// Initialize app
-dotenv.config(); // Load environment variables
+dotenv.config();
+
 const app = express();
+// Replace current socket initialization with:
+const server = createServer(app);
+const io = socketService.initialize(server);
+app.set('socketService', socketService);
 
-// Connect to the database
 connectDB();
-console.log('Connected to the database');
 
-// Security middleware
-app.use(helmet());         // Set security-related HTTP headers
-app.use(mongoSanitize());  // Sanitize user input to prevent NoSQL injection attacks
-app.use(xss());            // Sanitize user input to prevent XSS attacks
+app.use(mongoSanitize());
+app.use(xss());
 app.use(express.json({ limit: '10mb' }));
 
-// Rate Limiting Middleware
 const limiter = rateLimit({
-  windowMs: 10 * 60 * 1000,  // 10 minutes 
-  max: 100,                  // limit each IP to 100 requests per windowMs
+  windowMs: 10 * 60 * 1000,
+  max: 100,
   message: 'Too many requests from this IP, please try again later',
 });
-app.use(limiter);
 
-// Middleware
-app.use(cors());
-app.use(morgan('dev'));
+const corsOptions = {
+  origin: ['http://localhost:3000', 'http://localhost:5173', 'https://kiwii.shop'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Origin', 'Accept', 'X-Requested-With'],
+  credentials: true,
+  exposedHeaders: ['Content-Length', 'X-Foo', 'X-Bar'],
+  preflightContinue: false,
+  optionsSuccessStatus: 204
+};
 
-// API routes
+// app.use(limiter);
+app.use(cors(corsOptions));
+app.use(morgan('dev')); 
+
 app.use('/api/v1/admin', adminRoutes);
 app.use('/api/v1/user', userRoutes);
 app.use('/api/v1/auth', authRoutes);
-app.use('/api/v1/notification', notificationRoutes);
+app.use('/api/v1/notifications', notificationRoutes);
 app.use('/api/v1/analytics', analyticsRoutes);
 app.use('/api/v1/prizes', prizesRoutes);
 app.use('/api/v1/brands', brandRoutes);
 app.use('/api/v1/campaigns', campaignRoutes);
+app.use('/api/v1/chat', chatRoutes);
+app.use('/api/v1/conversations', conversationRoutes);
+app.use('/api/v1/messages', messageRoutes);
 
-// Custom error handling middleware
 app.use(errorHandler);
 
-// Home route
 app.get('/', (req, res) => {
   res.send('Welcome to the Threat Intelligence Platform API');
 });
 
-// Export Express app as a Vercel-compatible function
-import { createServer } from 'http';
-import { parse } from 'url';
-
-export default function handler(req, res) {
-  const server = createServer(app);
-  const parsedUrl = parse(req.url, true);
-  server.emit('request', req, res);
-}
+const PORT = process.env.PORT || 5000;
+server.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
+});

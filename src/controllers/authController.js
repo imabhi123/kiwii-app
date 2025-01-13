@@ -8,10 +8,6 @@ export const sendOtp = async (req, res) => {
     try {
         const { email } = req.body;
         console.log(email);
-        const user = await User.findOne({ email });
-        if (!user) {
-            res.status(404).json({ error: 'there is no user' });
-        }
         await emailAuth.sendOTP(email);
         res.json({ message: 'OTP sent successfully' });
     } catch (error) {
@@ -22,10 +18,10 @@ export const sendOtp = async (req, res) => {
 
 export const verifyOtp = async (req, res) => {
     try {
-        const { email, otp, newPassword } = req.body; // Accept `newPassword` in the request body
+        const { email, otp } = req.body;
 
-        // Verify the OTP
-        const result = await emailAuth.verifyOTP(email, otp);
+        // Awaiting the verification result
+        const result = await emailAuth.verifyOTP(email, otp); // Added `await`
 
         if (result.valid) {
             // Find the user in the database
@@ -35,17 +31,12 @@ export const verifyOtp = async (req, res) => {
                 return res.status(404).json({ error: "User not found." });
             }
 
-            // Update the password if `newPassword` is provided
-            if (newPassword) {
-                user.password = newPassword; // Ensure this is hashed before saving
-            }
-
             // Update the verified status
             user.verified = true;
             await user.save();
 
             // Send success response
-            return res.json({ message: "OTP verified and password updated successfully." });
+            return res.json({ message: "OTP verified successfully." });
         } else {
             // Send error response if OTP verification fails
             return res.status(400).json({ error: result.message });
@@ -56,7 +47,6 @@ export const verifyOtp = async (req, res) => {
         return res.status(500).json({ error: "Internal server error." });
     }
 };
-
 
 export const sendPurchaseConfirmation = async (req, res) => {
     try {
@@ -81,7 +71,7 @@ export const sendResetPasswordCode = async (req, res) => {
         const { email } = req.body;
 
         // Check if the email exists in the database
-        const admin = await Admin.findOne({ username: email }); // Changed `username` to `email` as per request
+        const admin = await User.findOne({ email: email }); // Changed `username` to `email` as per request
 
         if (!admin) {
             return res.status(404).json({ error: "Admin not found." });
@@ -95,30 +85,42 @@ export const sendResetPasswordCode = async (req, res) => {
         console.error('Error sending reset password code:', error);
         res.status(500).json({ error: 'Failed to send reset password code.' });
     }
-};
+}; 
 
 export const verifyResetPasswordCode = async (req, res) => {
     try {
-        const { email, code, newPassword } = req.body;
-        console.log(req.body)
+        const { email, code } = req.body;
+
         const result = await emailAuth.verifyResetPasswordCode(email, code);
 
         if (result.valid) {
-            const admin = await Admin.findOne({ username: email });
-
-            if (!admin) {
-                return res.status(404).json({ error: "Admin not found." });
-            }
-
-            admin.password = newPassword; // Ensure the password is hashed if necessary
-            await admin.save();
-
-            res.json({ message: 'Password reset successfully.' });
+            res.json({ message: 'Code verified successfully.' });
         } else {
-            res.status(400).json({ error: result.message });
+            res.status(400).json({ error: result.message }); 
         }
     } catch (error) {
         console.error('Error verifying reset password code:', error);
         res.status(500).json({ error: 'Failed to verify reset password code.' });
     }
 };
+
+export const changePassword = async (req, res) => {
+    try {
+        const { email, newPassword } = req.body;
+
+        const admin = await User.findOne({ email: email });
+
+        if (!admin) {
+            return res.status(404).json({ error: "Admin not found." });
+        }
+
+        admin.password = newPassword; // Ensure the password is hashed if necessary
+        await admin.save();
+
+        res.json({ message: 'Password reset successfully.' });
+    } catch (error) {
+        console.error('Error changing password:', error);
+        res.status(500).json({ error: 'Failed to change password.' });
+    }
+};
+

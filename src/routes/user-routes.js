@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { changeCurrentPassword, changeUserStatus, getCurrentUser, googleLoginUser, googleRegisterUser, loginUser, logoutUser, refreshAccessToken, registerUser, updateAccountDetails, updateUserprofilePicture } from "../controllers/user-controller.js";
+import { changeCurrentPassword, changeUserStatus, getCurrentUser, getUserProfile, googleLoginUser, googleRegisterUser, loginUser, logoutUser, refreshAccessToken, registerUser, updateAccountDetails, updateUserprofilePicture } from "../controllers/user-controller.js";
 import { upload } from "../middlewares/multer.middleware.js";
 import { verifyJWT } from "../middlewares/authMiddleware.js";
 
@@ -19,6 +19,7 @@ router.put("/status/:userId", changeUserStatus);
 router.route('/logout').post(verifyJWT,logoutUser);
 router.route("/refresh-token").post(refreshAccessToken);
 router.route("/change-password").post(verifyJWT,changeCurrentPassword);
+router.route("/get-user-profile").post(getUserProfile);
 router.route("/current-user").get(verifyJWT,getCurrentUser);
 router.route("/update-details").patch(verifyJWT,updateAccountDetails);
 

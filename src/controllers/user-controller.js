@@ -13,7 +13,7 @@ const generateAccessAndRefreshTokens = async (userId) => {
     await user.save({ validateBeforeSave: false });
     return { accessToken, refreshToken };
   } catch (error) {
-    throw new ApiError( 
+    throw new ApiError(
       500,
       "Something went wrong while generating refresh and access token"
     );
@@ -21,12 +21,12 @@ const generateAccessAndRefreshTokens = async (userId) => {
 };
 
 const registerUser = asyncHandler(async (req, res) => {
-  const { email, name, mobile, password, role } = req.body;
+  const { email, name, mobile, password, username, country } = req.body;
   console.log(req.body);
 
   // Validate required fields
   if (
-    [email,name,mobile,password].some((field) => field?.trim() === "")
+    [email, name, mobile, password, country].some((field) => field?.trim() === "")
   ) {
     throw new ApiError(400, "Please provide all required fields");
   }
@@ -43,7 +43,9 @@ const registerUser = asyncHandler(async (req, res) => {
     name,
     email: email.toLowerCase(),
     password,
-    mobile
+    mobile,
+    username,
+    country
   });
 
   console.log(user, "--->abhishek");
@@ -229,7 +231,7 @@ const googleLoginUser = asyncHandler(async (req, res) => {
 
   // Check if the user already exists
   let user = await User.findOne({ email });
-  console.log(user,'-->',uid);
+  console.log(user, '-->', uid);
   if (!user) {
     // Create a new user if none exists
     user = await User.create({
@@ -366,6 +368,24 @@ const getCurrentUser = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, { user }, "Current user fetched successfully"));
 });
 
+const getUserProfile = asyncHandler(async (req, res) => {
+  // Find the user by ID, excluding password and refreshToken
+  const user = await User.findById(req.body.userId)
+    .select("-password -refreshToken")
+    .populate({
+      path: "winHistory.campaignId",
+    });
+
+  if (!user) {
+    throw new ApiError(404, "User not found");
+  }
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, { user }, "Current user fetched successfully"));
+});
+
+
 const updateAccountDetails = asyncHandler(async (req, res) => {
   const { firstName, lastName, email } = req.body;
 
@@ -418,5 +438,6 @@ export {
   updateAccountDetails,
   updateUserprofilePicture,
   googleRegisterUser,
-  googleLoginUser
+  googleLoginUser,
+  getUserProfile
 };

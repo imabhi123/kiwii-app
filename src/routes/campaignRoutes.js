@@ -5,7 +5,8 @@ import {
     getCampaignById,
     createCampaign,
     updateCampaign,
-    deleteCampaign
+    deleteCampaign,
+    markCampaignWinner
 } from '../controllers/campaignControllers.js';
 
 const router = express.Router();
@@ -16,5 +17,6 @@ router.get('/:id', getCampaignById);
 router.post('/', createCampaign);
 router.put('/:id', updateCampaign);
 router.delete('/:id', deleteCampaign);
+router.post('/:id/win', markCampaignWinner);
 
 export default router;

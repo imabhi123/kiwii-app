@@ -1,4 +1,5 @@
 import { Admin } from "../models/adminModel.js";
+import { User } from "../models/userModel.js";
 
 // Login Controller
 // export const loginAdmin = async (req, res) => {
@@ -157,6 +158,50 @@ export const loginAdmin = async (req, res) => {
   } catch (error) {
     console.error("Login error: ", error);
     res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const getAllUsers=async(req,res)=>{
+ try {
+  const users=await User.find().select('-password');
+  res.status(200).json(users);
+ } catch (error) {
+  console.log(error.message)
+ } 
+}
+
+export const changeUserStatus = async (req, res) => {
+  try {
+    const { id } = req.params; // Extract user ID from request parameters
+    const { status } = req.body; // Extract status from request body
+
+    // Log incoming data for debugging
+    console.log(`Changing status for user ID: ${id}, New status: ${status}`);
+
+    // Find the user by ID
+    const user = await User.findById(id);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Validate the new status
+    const validStatuses = ["active", "inactive", "suspended"];
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({
+        message: `Invalid status. Allowed values are: ${validStatuses.join(", ")}`,
+      });
+    }
+
+    // Update the user's status
+    user.status = status;
+    await user.save(); // Await the save operation
+
+    // Respond with the updated user object
+    res.status(200).json({ message: "User status updated successfully", user });
+  } catch (error) {
+    // Log the error and respond with a 500 status code
+    console.error("Error changing user status:", error.message);
+    res.status(500).json({ message: "An unexpected error occurred", error: error.message });
   }
 };
 
