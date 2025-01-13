@@ -1,4 +1,3 @@
-import { Admin } from '../models/adminModel.js';
 import { User } from '../models/userModel.js';
 import EmailAuth from '../services/EmailAuth.js';
 
