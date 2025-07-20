@@ -115,7 +115,8 @@ export const signupAdmin = async (req, res) => {
 // Login API
 export const loginAdmin = async (req, res) => {
   const { email, password } = req.body;
-  console.log(req.body)
+  console.log(req.body);
+  console.log(process.env.MONGODB_URI,'--->abhishek');
 
   // Validate required fields
   if (!email || !password) {
