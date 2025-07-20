@@ -56,6 +56,8 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(morgan('dev')); 
 
+console.log(process.env.MONGODB_URI,'--->uri');
+
 app.use('/api/v1/admin', adminRoutes);
 app.use('/api/v1/user', userRoutes);
 app.use('/api/v1/auth', authRoutes);
